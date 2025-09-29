@@ -1,0 +1,115 @@
+name: CI/CD Frontend
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.3"
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }} # Optional: For CI build
+        run: npm run build
+
+      - name: Verify Build Output
+        run: |
+          ls -la dist || { echo "dist directory not found. Build failed."; exit 1; }
+          echo "Build output verified"
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.3"
+          cache: "npm"
+
+      - name: Deploy Frontend to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }} # Should be 'root'
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            echo "--- Starting Frontend Deployment ---"
+
+            # Source NVM
+            export NVM_DIR="/root/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            # Debug: Verify Node.js/NPM
+            echo "Node.js version: $(node -v || echo 'Node.js not found')"
+            echo "NPM version: $(npm -v || echo 'NPM not found')"
+            echo "NPM location: $(which npm || echo 'NPM not found')"
+
+            # Navigate to directory
+            echo "Changing to /var/www/lms/lms-fe..."
+            cd /var/www/lms/lms-fe || { echo "Failed to change directory."; exit 1; }
+
+            # Pull code
+            echo "Pulling latest changes..."
+            git fetch origin
+            git reset --hard origin/master || { echo "Git pull/reset failed."; exit 1; }
+
+            # Create .env.production if missing (optional, uncomment if using secrets)
+            # echo "Creating .env.production..."
+            # cat << EOF > .env.production
+            # VITE_API_URL=${{ secrets.VITE_API_URL }}
+            # EOF
+            # chown root:root .env.production
+            # chmod 600 .env.production
+
+            # Debug: Verify .env.production
+            # echo "Checking .env.production..."
+            # cat .env.production || { echo ".env.production not found."; exit 1; }
+            # ls -la .env*
+
+            # Install dependencies
+            echo "Installing dependencies..."
+            npm ci || { echo "npm ci failed."; exit 1; }
+
+            # Clean old build
+            echo "Cleaning old build..."
+            rm -rf dist || true
+
+            # Build Vite app
+            echo "Running build..."
+            node --max-old-space-size=1536 ./node_modules/.bin/vite build || { echo "npm run build failed."; exit 1; }
+
+            # Verify build
+            echo "Listing dist contents:"
+            ls -la dist || { echo "dist not found."; exit 1; }
+
+            # Set permissions
+            echo "Setting permissions..."
+            chown -R www-data:www-data dist || { echo "Failed to set permissions."; exit 1; }
+            chmod -R 755 dist || { echo "Failed to set permissions."; exit 1; }
+
+            # Clear Nginx cache
+            echo "Clearing Nginx cache..."
+            rm -rf /var/cache/nginx/* || true
+            sudo systemctl reload nginx || { echo "Nginx reload failed."; exit 1; }
+
+            echo "--- Frontend Deployment Finished ---"
