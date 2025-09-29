@@ -34,9 +34,6 @@ const router = createBrowserRouter([
     errorElement: <Error />,
     children: [
       { index: true, element: <LandingPage /> },
-      { path: "parents", element: <ParentsLogin /> },
-      { path: "parents/register", element: <ParentsRegister /> },
-      { path: "parents/login", element: <ParentsLogin /> },
       { path: "admin/login", element: <AdminLogin /> },
       { path: "profile/super", element: <SuperProfile /> },
       {
@@ -58,7 +55,6 @@ const router = createBrowserRouter([
       { path: "sign-in", element: <SignIn /> },
       { path: "about-us", element: <AboutUs /> },
       { path: "contact-us", element: <ContactUs /> },
-      { path: "teacher-login", element: <TeacherLogin /> },
       {
         path: "students",
         element: (

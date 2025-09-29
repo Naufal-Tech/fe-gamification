@@ -2,13 +2,7 @@ import React, { Component, useEffect, useRef, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Footer, Header } from "../components/";
-import {
-  AdminSidebar,
-  ParentSidebar,
-  StudentSidebar,
-  SuperSidebar,
-  TeacherSidebar,
-} from "../pages";
+import { AdminSidebar, StudentSidebar, SuperSidebar } from "../pages";
 import { useAuthStore } from "../store/auth";
 
 // Error Boundary Component
