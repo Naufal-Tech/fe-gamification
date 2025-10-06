@@ -1,14 +1,15 @@
 import React from "react";
 import {
-  FaBullhorn,
-  FaChalkboardTeacher,
   FaChartLine,
   FaChevronLeft,
   FaChevronRight,
+  FaGem,
   FaHome,
+  FaMedal,
+  FaTasks,
+  FaTrophy,
   FaUser,
   FaUserGraduate,
-  FaUsers,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 
@@ -28,69 +29,49 @@ const AdminSidebar = ({ isCollapsed, toggleCollapse }) => {
       label: "User Management",
       links: [
         {
-          to: "/admin/teachers",
-          label: "Management Guru",
-          icon: <FaChalkboardTeacher className="h-5 w-5" />,
-        },
-        {
-          to: "/admin/students",
-          label: "Management Siswa",
+          to: "/admin/players",
+          label: "Management Players",
           icon: <FaUserGraduate className="h-5 w-5" />,
         },
-        // {
-        //   to: "/admin/students",
-        //   label: "User Management",
-        //   icon: <FaUsers className="h-5 w-5" />,
-        // },
       ],
     },
     {
-      label: "School Management",
+      label: "Gamification",
       links: [
         {
-          to: "/admin/kelas",
-          label: "Management Kelas",
-          icon: <FaUsers className="h-5 w-5" />,
+          to: "/admin/daily-tasks",
+          label: "Daily Tasks",
+          icon: <FaTasks className="h-5 w-5" />,
         },
-        // {
-        //   to: "/admin/approvals",
-        //   label: "Approvals",
-        //   icon: <FaUserShield className="h-5 w-5" />,
-        // },
+        {
+          to: "/admin/milestones",
+          label: "Milestones",
+          icon: <FaTrophy className="h-5 w-5" />,
+        },
+        {
+          to: "/admin/badges",
+          label: "Badges",
+          icon: <FaGem className="h-5 w-5" />,
+        },
+        {
+          to: "/admin/xp-transactions",
+          label: "XP Transactions",
+          icon: <FaMedal className="h-5 w-5" />,
+        },
       ],
     },
     {
       label: "Reports & Settings",
       links: [
-        // {
-        //   to: "/admin/reports",
-        //   label: "Reports",
-        //   icon: <FaChartBar className="h-5 w-5" />,
-        // },
         {
           to: "/admin/activity-logs",
           label: "Activity Logs",
           icon: <FaChartLine className="h-5 w-5" />,
         },
-        {
-          to: "/admin/announcements",
-          label: "Announcements",
-          icon: <FaBullhorn className="h-5 w-5" />,
-        },
-        // {
-        //   to: "/admin/audit-trail",
-        //   label: "Audit Trail",
-        //   icon: <FaClipboardCheck className="h-5 w-5" />,
-        // },
-        // {
-        //   to: "/admin/settings",
-        //   label: "Settings",
-        //   icon: <FaCog className="h-5 w-5" />,
-        // },
       ],
     },
     {
-      label: "Profile",
+      label: "Account",
       links: [
         {
           to: "/admin/profile",
@@ -105,9 +86,9 @@ const AdminSidebar = ({ isCollapsed, toggleCollapse }) => {
     <div
       className={`${
         isCollapsed ? "w-16" : "w-64"
-      } bg-white dark:bg-gray-800 h-screen p-4 shadow-lg transition-all duration-200 flex flex-col sticky top-0`}
+      } bg-white dark:bg-gray-800 h-full p-4 shadow-lg transition-all duration-200 flex flex-col fixed top-0 left-0 md:sticky md:top-0 md:h-full`}
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         {!isCollapsed && (
           <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
             Admin Portal
@@ -125,11 +106,11 @@ const AdminSidebar = ({ isCollapsed, toggleCollapse }) => {
           )}
         </button>
       </div>
-      <nav className="flex-1 space-y-4 overflow-y-auto">
+      <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden">
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-2">
             {!isCollapsed && (
-              <h3 className="px-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
+              <h3 className="px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {group.label}
               </h3>
             )}
@@ -148,7 +129,7 @@ const AdminSidebar = ({ isCollapsed, toggleCollapse }) => {
                 title={isCollapsed ? link.label : ""}
               >
                 {link.icon}
-                {!isCollapsed && <span>{link.label}</span>}
+                {!isCollapsed && <span className="text-sm">{link.label}</span>}
               </NavLink>
             ))}
           </div>

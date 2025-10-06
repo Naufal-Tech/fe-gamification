@@ -4,20 +4,18 @@ import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/auth";
 import api from "../../utils/api";
 
-const StudentDashboardOutlet = () => {
+const UserDashboardOutlet = () => {
   const { user, isAuthenticated, accessToken, clearAuth, setAuth } =
     useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation(); // To check current path for redirection
+  const location = useLocation();
 
-  // Redirect if not authenticated or not a student
   useEffect(() => {
     if (!isAuthenticated) {
       console.log("Not authenticated, redirecting to sign-in");
       navigate("/sign-in");
     } else if (user?.role !== "User") {
-      // Assuming 'User' is the student role
-      console.log("User is not a student, redirecting to sign-in");
+      console.log("redirecting to sign-in");
       navigate("/sign-in");
     }
   }, [isAuthenticated, user, navigate]);
@@ -41,8 +39,8 @@ const StudentDashboardOutlet = () => {
       setAuth(fullUser, accessToken); // Update auth store with full details
       return fullUser;
     },
-    enabled: isAuthenticated && user?.role === "User", // Only fetch if authenticated and is a student
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes, similar to teacher dashboard
+    enabled: isAuthenticated && user?.role === "User",
+    staleTime: 5 * 60 * 1000,
     onError: (err) => {
       console.error("Error fetching user details:", {
         message: err.message,
@@ -93,12 +91,11 @@ const StudentDashboardOutlet = () => {
     return null;
   }
 
-  // Error state with retry button for non-401 errors
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
         <div className="text-red-600 dark:text-red-400 text-lg text-center">
-          Error loading student data. Please try again.
+          Error loading user data. Please try again.
           <button
             onClick={() => refetch()} // Use refetch from react-query
             className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
@@ -110,25 +107,21 @@ const StudentDashboardOutlet = () => {
     );
   }
 
-  // Use userDetails if available, fallback to user from store
   const displayUser = userDetails || user;
 
   if (!displayUser) {
     console.log("No displayUser, likely initial load or fetch failed");
-    // If not authenticated and no user data, navigate to sign-in
     if (!isAuthenticated) {
       navigate("/sign-in", { replace: true });
     }
     return null;
   }
 
-  // Redirect to dashboard if at base student path `/student`
-  // This will ensure /student always goes to /student/dashboard
-  return location.pathname === "/students" ? (
-    <Navigate to="/students/dashboard" replace />
+  return location.pathname === "/users" ? (
+    <Navigate to="/users/dashboard" replace />
   ) : (
-    <Outlet /> // This is where StudentDashboardHome or other student routes will render
+    <Outlet />
   );
 };
 
-export default StudentDashboardOutlet;
+export default UserDashboardOutlet;

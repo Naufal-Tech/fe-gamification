@@ -8,6 +8,34 @@ body {
   padding: 0;
   font-family: "Inter", sans-serif;
   scroll-behavior: smooth;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Ensure proper responsive behavior */
+@media (max-width: 768px) {
+  .max-w-full {
+    max-width: 100%;
+  }
+
+  /* Prevent horizontal scrolling on mobile */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Improve table responsiveness */
+@media (max-width: 640px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+/* Better modal handling on mobile */
+@media (max-width: 640px) {
+  .modal-mobile {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
 }
 
 .container {

@@ -5,25 +5,43 @@ import { userLoader } from "./loaders";
 
 import {
   AboutUs,
+  AdminActivityLogs,
+  AdminBadges,
+  AdminDailyTaskManagement,
   AdminDashboardHome,
   AdminDashboardOutlet,
   AdminLogin,
+  AdminMilestones,
+  AdminPlayersManagement,
+  AdminProfile,
+  AdminXPTransactions,
+  Badges,
   ContactUs,
+  DailyTasks,
+  DueDate,
   Error,
   ForgotPassword,
   HomeLayout,
+  JoinUs,
   LandingPage,
+  Leaderboard,
+  Milestones,
   ResendOtp,
   ResetPassword,
   SignIn,
   SignUp,
-  StudentDashboardHome,
-  StudentDashboardOutlet,
-  StudentProfile,
-  SuperDashboard,
+  SuperAdminManagement,
+  SuperDailyTaskManagement,
+  SuperDashboardHome,
+  SuperDashboardOutlet,
+  SuperPlayersManagement,
   SuperProfile,
+  UserDashboardHome,
+  UserDashboardOutlet,
+  UserProfile,
   VerifyEmail,
   VerifyOtp,
+  XPStats,
 } from "./pages";
 
 const router = createBrowserRouter([
@@ -36,40 +54,80 @@ const router = createBrowserRouter([
       { index: true, element: <LandingPage /> },
       { path: "admin/login", element: <AdminLogin /> },
       { path: "profile/super", element: <SuperProfile /> },
-      {
-        path: "super/dashboard",
-        element: (
-          <ProtectedRoute allowedRoles={["Super"]}>
-            <SuperDashboard />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "super/announcements",
-        element: (
-          <ProtectedRoute allowedRoles={["Super"]}>
-            <Announcements />
-          </ProtectedRoute>
-        ),
-      },
+
       { path: "sign-in", element: <SignIn /> },
       { path: "about-us", element: <AboutUs /> },
       { path: "contact-us", element: <ContactUs /> },
+      { path: "join-us", element: <JoinUs /> },
       {
-        path: "students",
+        path: "users",
         element: (
           <ProtectedRoute allowedRoles={["User"]}>
-            <StudentDashboardOutlet />
+            <UserDashboardOutlet />
           </ProtectedRoute>
         ),
         children: [
-          { index: true, element: <StudentDashboardHome /> },
-          { path: "dashboard", element: <StudentDashboardHome /> },
+          { index: true, element: <UserDashboardHome /> },
+          { path: "dashboard", element: <UserDashboardHome /> },
           {
             path: "profile",
             element: (
               <ProtectedRoute allowedRoles={["User"]}>
-                <StudentProfile />
+                <UserProfile />
+              </ProtectedRoute>
+            ),
+            errorElement: <Error />,
+          },
+          {
+            path: "daily-tasks",
+            element: (
+              <ProtectedRoute allowedRoles={["User"]}>
+                <DailyTasks />
+              </ProtectedRoute>
+            ),
+            errorElement: <Error />,
+          },
+          {
+            path: "due-dates",
+            element: (
+              <ProtectedRoute allowedRoles={["User"]}>
+                <DueDate />
+              </ProtectedRoute>
+            ),
+            errorElement: <Error />,
+          },
+          {
+            path: "milestones",
+            element: (
+              <ProtectedRoute allowedRoles={["User"]}>
+                <Milestones />
+              </ProtectedRoute>
+            ),
+            errorElement: <Error />,
+          },
+          {
+            path: "badges",
+            element: (
+              <ProtectedRoute allowedRoles={["User"]}>
+                <Badges />
+              </ProtectedRoute>
+            ),
+            errorElement: <Error />,
+          },
+          {
+            path: "xp-stats",
+            element: (
+              <ProtectedRoute allowedRoles={["User"]}>
+                <XPStats />
+              </ProtectedRoute>
+            ),
+            errorElement: <Error />,
+          },
+          {
+            path: "leaderboard",
+            element: (
+              <ProtectedRoute allowedRoles={["User"]}>
+                <Leaderboard />
               </ProtectedRoute>
             ),
             errorElement: <Error />,
@@ -93,6 +151,113 @@ const router = createBrowserRouter([
               </ProtectedRoute>
             ),
           },
+          {
+            path: "players",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminPlayersManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "daily-tasks",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminDailyTaskManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "milestones",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminMilestones />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "badges",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminBadges />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "xp-transactions",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminXPTransactions />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "activity-logs",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminActivityLogs />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "profile",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminProfile />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: "super",
+        element: (
+          <ProtectedRoute allowedRoles={["Super"]}>
+            <SuperDashboardOutlet />
+          </ProtectedRoute>
+        ),
+        children: [
+          { index: true, element: <SuperDashboardHome /> },
+          {
+            path: "dashboard",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperDashboardHome />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "admin-management",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperAdminManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "players-management",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperPlayersManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "daily-tasks",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperDailyTaskManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "profile",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperProfile />
+              </ProtectedRoute>
+            ),
+          },
         ],
       },
     ],
@@ -105,7 +270,7 @@ const router = createBrowserRouter([
     ),
     errorElement: <Error />,
     children: [
-      { path: "sign-up", element: <SignUp />, loader: classLoader },
+      { path: "sign-up", element: <SignUp /> },
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "reset-password", element: <ResetPassword /> },
       { path: "verify-email", element: <VerifyEmail /> },

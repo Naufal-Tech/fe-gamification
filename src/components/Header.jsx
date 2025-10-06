@@ -13,7 +13,6 @@ import {
   FaListUl,
   FaMoon,
   FaSignOutAlt,
-  FaStar,
   FaSun,
   FaTimes,
   FaTrophy,
@@ -22,6 +21,8 @@ import {
 import { FaShield } from "react-icons/fa6";
 import { FiUser } from "react-icons/fi";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { UserStats } from "../components";
+import { useUserData } from "../hooks/useUserData.js";
 import { useAuthStore } from "../store/auth";
 import api from "../utils/api";
 
@@ -32,8 +33,8 @@ const defaultClassName =
 const commonClasses = "px-4 py-2 text-sm font-medium relative";
 
 // Gamification utility functions
-const getLevelFromXP = (xp) => Math.floor(xp / 100) + 1;
-const getXPProgress = (xp) => xp % 100;
+const getLevelFromXP = (xp) => Math.floor(xp / 1000) + 1;
+const getXPProgress = (xp) => xp % 1000;
 const getRankTitle = (level) => {
   if (level >= 50) return "Grandmaster";
   if (level >= 30) return "Champion";
@@ -50,6 +51,43 @@ const getRankIcon = (level) => {
   if (level >= 10) return <FaBolt className="text-blue-400" />;
   return <FaGamepad className="text-green-400" />;
 };
+
+// Loading Skeleton Component
+const HeaderSkeleton = () => (
+  <header className="bg-gradient-to-r from-purple-900/95 via-blue-900/95 to-indigo-900/95 backdrop-blur-sm border-b border-purple-500/30 sticky top-0 z-50 w-full">
+    <div className="px-3 sm:px-4 md:px-6 flex items-center justify-between h-16 sm:h-18 w-full">
+      {/* Left Side - Logo Skeleton */}
+      <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-purple-400/30 rounded-lg animate-pulse"></div>
+          <div className="flex flex-col space-y-1">
+            <div className="h-4 w-32 bg-purple-400/30 rounded animate-pulse"></div>
+            <div className="h-2 w-24 bg-purple-400/30 rounded animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Center - Navigation Skeleton */}
+      <div className="hidden md:flex items-center space-x-4">
+        <div className="h-8 w-28 bg-purple-400/30 rounded-lg animate-pulse"></div>
+        <div className="h-8 w-28 bg-purple-400/30 rounded-lg animate-pulse"></div>
+      </div>
+
+      {/* Right Side - User Info Skeleton */}
+      <div className="flex items-center space-x-3">
+        <div className="hidden sm:flex items-center space-x-3">
+          <div className="w-10 h-10 bg-purple-400/30 rounded-full animate-pulse"></div>
+          <div className="flex flex-col space-y-1">
+            <div className="h-3 w-20 bg-purple-400/30 rounded animate-pulse"></div>
+            <div className="h-2 w-16 bg-purple-400/30 rounded animate-pulse"></div>
+          </div>
+        </div>
+        <div className="w-8 h-8 bg-purple-400/30 rounded-lg animate-pulse"></div>
+        <div className="w-8 h-8 bg-purple-400/30 rounded-lg animate-pulse"></div>
+      </div>
+    </div>
+  </header>
+);
 
 function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -68,57 +106,45 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
   });
 
   const { accessToken, user, clearAuth, isValidAuth } = useAuthStore();
+  const { userData, isLoading: userDataLoading } = useUserData();
   const isLoggedIn = isValidAuth();
   const navigate = useNavigate();
 
-  // Mock gamification data - replace with actual user data
-  const userStats = useMemo(() => {
-    if (!user) return null;
+  // Use persisted user data immediately, fallback to fresh data
+  const displayUser = userData || user;
 
-    // In real app, this would come from user data
-    const mockXP = 1250;
-    const mockStreak = 7;
-    const mockLevel = getLevelFromXP(mockXP);
+  // Stable user stats that don't flash
+  const userStats = useMemo(() => {
+    // Return null during initial load to prevent flashing
+    if (userDataLoading && !user) return null;
+
+    if (!displayUser) return null;
+
+    const currentUser = displayUser;
+    const userXP = currentUser.totalXP || 0;
+    const userLevel = getLevelFromXP(userXP);
+    const xpProgress = getXPProgress(userXP);
+    const rankTitle = getRankTitle(userLevel);
+    const rankIcon = getRankIcon(userLevel);
+    const userStreak = currentUser.currentStreak || 0;
 
     return {
-      xp: mockXP,
-      level: mockLevel,
-      streak: mockStreak,
-      xpProgress: getXPProgress(mockXP),
-      rank: getRankTitle(mockLevel),
-      rankIcon: getRankIcon(mockLevel),
+      xp: userXP,
+      level: userLevel,
+      streak: userStreak,
+      xpProgress: xpProgress,
+      rank: rankTitle,
+      rankIcon: rankIcon,
+      user: currentUser,
     };
-  }, [user]);
-
-  // Get role-based announcements route
-  const getAnnouncementsRoute = useMemo(() => {
-    if (!user) return "/";
-    switch (user.role) {
-      case "Guru":
-        return "/teachers/quests"; // Changed to match gaming theme
-      case "User":
-        return "/students/quests";
-      case "Parents":
-        return "/parents/quests";
-      case "Admin":
-        return "/admin/quests";
-      case "Super":
-        return "/super/quests";
-      default:
-        return "/";
-    }
-  }, [user]);
+  }, [displayUser, userDataLoading, user]); // Include user as dependency
 
   // Get profile route based on user role
   const getProfileRoute = useMemo(() => {
-    if (!user) return "/";
-    switch (user.role) {
-      case "Guru":
-        return "/teachers/profile";
+    if (!displayUser) return "/profile";
+    switch (displayUser.role) {
       case "User":
-        return "/students/profile";
-      case "Parents":
-        return "/parents/profile";
+        return "/users/profile";
       case "Admin":
         return "/admin/profile";
       case "Super":
@@ -126,43 +152,38 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
       default:
         return "/profile";
     }
-  }, [user]);
+  }, [displayUser]);
 
-  // Updated navigation links with gaming terminology
+  // Navigation links
   const navLinks = useMemo(() => {
     if (!isLoggedIn) {
       return [
-        { to: "/parents/login", label: "Parents Portal" },
-        { to: "/teacher-login", label: "Teacher Hub" },
-        { to: "/about-us", label: "Our Quest" },
-        { to: "/contact-us", label: "Join Us" },
+        { to: "/about-us", label: "About Us" },
+        { to: "/join-us", label: "Join Us" },
+        { to: "/contact-us", label: "Contact Us" },
       ];
     }
 
     return [
-      { to: getAnnouncementsRoute, label: "Daily Quests" },
-      { to: "/leaderboard", label: "Leaderboard" },
+      { to: "/users/daily-tasks", label: "Daily Quests" },
+      { to: "/users/leaderboard", label: "Leaderboard" },
     ];
-  }, [isLoggedIn, getAnnouncementsRoute]);
+  }, [isLoggedIn]);
 
   // Get dashboard route based on user role
   const getDashboardRoute = useMemo(() => {
-    if (!user) return "/";
-    switch (user.role) {
-      case "Guru":
-        return "/teachers/command-center"; // Gaming themed
-      case "Parents":
-        return "/parents/overview";
+    if (!displayUser) return "/";
+    switch (displayUser.role) {
       case "User":
-        return "/students/adventure-hub";
+        return "/users/dashboard";
       case "Admin":
-        return "/admin/control-room";
+        return "/admin/dashboard";
       case "Super":
-        return "/super/headquarters";
+        return "/super/dashboard";
       default:
         return "/";
     }
-  }, [user]);
+  }, [displayUser]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -184,6 +205,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
   }, [isDarkMode]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
   const closeMobileMenu = () => {
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
@@ -195,13 +217,12 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
         ? { headers: { Authorization: `Bearer ${accessToken}` } }
         : { withCredentials: true };
       await api.post("/v1/users/logout", {}, config);
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+    } finally {
       clearAuth();
       navigate("/");
       closeMobileMenu();
-    } catch (error) {
-      console.error("Logout failed:", error);
-      clearAuth();
-      navigate("/");
     }
   };
 
@@ -217,6 +238,11 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
       setSearchQuery("");
     }
   };
+
+  // Show loading skeleton during initial load
+  if (userDataLoading && !user) {
+    return <HeaderSkeleton />;
+  }
 
   return (
     <header className="bg-gradient-to-r from-purple-900/95 via-blue-900/95 to-indigo-900/95 dark:from-gray-900/95 dark:via-purple-900/95 dark:to-indigo-900/95 backdrop-blur-sm border-b border-purple-500/30 dark:border-purple-400/20 sticky top-0 z-50 transition-all duration-300 w-full max-w-none shadow-lg">
@@ -310,40 +336,8 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
 
         {/* Right Side: Stats and Action Buttons */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* User Stats - Only for logged-in users */}
-          {isLoggedIn && user && userStats && (
-            <div className="hidden lg:flex items-center space-x-4 bg-purple-800/40 rounded-lg px-3 py-2 border border-purple-500/30">
-              {/* Level */}
-              <div className="flex items-center space-x-1">
-                {userStats.rankIcon}
-                <span className="text-yellow-300 font-bold text-sm">
-                  Lv.{userStats.level}
-                </span>
-              </div>
-
-              {/* XP Progress */}
-              <div className="flex items-center space-x-2">
-                <FaStar className="text-yellow-400 text-xs" />
-                <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all duration-500"
-                    style={{ width: `${userStats.xpProgress}%` }}
-                  ></div>
-                </div>
-                <span className="text-xs text-purple-200">
-                  {userStats.xpProgress}/100
-                </span>
-              </div>
-
-              {/* Streak */}
-              <div className="flex items-center space-x-1">
-                <FaFire className="text-orange-400 text-sm animate-pulse" />
-                <span className="text-orange-300 font-bold text-sm">
-                  {userStats.streak}
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Real-time User Stats */}
+          {isLoggedIn && <UserStats />}
 
           {/* Search - Only show for unauthenticated users */}
           {!isLoggedIn && (
@@ -369,7 +363,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
           </button>
 
           {/* Notifications - Only for logged-in users */}
-          {isLoggedIn && user && (
+          {isLoggedIn && displayUser && (
             <button
               className="p-2 rounded-lg text-purple-200 hover:bg-purple-700/50 relative transition-all duration-200 border border-purple-500/30 hover:border-yellow-400/50"
               aria-label="Quest notifications"
@@ -380,7 +374,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
           )}
 
           {/* User Menu */}
-          {isLoggedIn && user && userStats ? (
+          {isLoggedIn && userStats ? (
             <>
               {/* Desktop User Menu */}
               <div className="hidden sm:flex items-center relative">
@@ -392,7 +386,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                 >
                   <div className="relative">
                     <img
-                      src={getProfileImage(user.img_profile)}
+                      src={getProfileImage(userStats.user.img_profile)}
                       alt="Profile"
                       className="h-8 w-8 rounded-full object-cover border-2 border-yellow-400"
                       onError={(e) => {
@@ -410,7 +404,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                       {userStats.rank}
                     </div>
                     <div className="text-xs text-purple-200">
-                      {user.fullName || user.username}
+                      {userStats.user.fullName || userStats.user.username}
                     </div>
                   </div>
                 </button>
@@ -431,6 +425,12 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                           </div>
                           <div className="text-xs text-purple-200">
                             {userStats.xp} XP
+                          </div>
+                          <div className="flex items-center space-x-1 mt-1">
+                            <FaFire className="text-orange-400 text-xs" />
+                            <span className="text-xs text-orange-300">
+                              {userStats.streak} day streak
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -474,7 +474,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                   className="relative"
                 >
                   <img
-                    src={getProfileImage(user.img_profile)}
+                    src={getProfileImage(userStats.user.img_profile)}
                     alt="Profile"
                     className="h-7 w-7 rounded-full object-cover border-2 border-yellow-400"
                   />
@@ -486,6 +486,11 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                 </button>
               </div>
             </>
+          ) : isLoggedIn ? (
+            // Loading state for user menu when data is still loading but user is logged in
+            <div className="hidden sm:flex items-center space-x-2">
+              <div className="w-8 h-8 bg-purple-400/30 rounded-full animate-pulse"></div>
+            </div>
           ) : (
             <>
               {/* Desktop Sign In */}
@@ -551,7 +556,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
       >
         <div className="px-4 py-3 bg-purple-900/95 backdrop-blur-sm border-t border-purple-500/30">
           <nav className="flex flex-col space-y-2">
-            {isLoggedIn && user && userStats && (
+            {isLoggedIn && userStats && (
               <div className="px-3 py-4 border-b border-purple-500/30">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -559,7 +564,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                 >
                   <div className="relative">
                     <img
-                      src={getProfileImage(user.img_profile)}
+                      src={getProfileImage(userStats.user.img_profile)}
                       alt="Profile"
                       className="h-10 w-10 rounded-full object-cover border-2 border-yellow-400"
                     />
@@ -574,7 +579,7 @@ function Header({ toggleSidebar, isSidebarOpen, toggleCollapse, isCollapsed }) {
                       {userStats.rank}
                     </div>
                     <div className="text-sm text-purple-200">
-                      {user.fullName || user.username}
+                      {userStats.user.fullName || userStats.user.username}
                     </div>
                     <div className="flex items-center space-x-2 mt-1">
                       <FaFire className="text-orange-400 text-xs" />

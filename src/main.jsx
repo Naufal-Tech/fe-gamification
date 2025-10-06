@@ -6,9 +6,6 @@ import "react-toastify/dist/ReactToastify.css";
 import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import "./index.css";
-import { useAuthStore } from "./store/auth";
-
-useAuthStore.getState().initializeAuth();
 
 const queryClient = new QueryClient({
   defaultOptions: {

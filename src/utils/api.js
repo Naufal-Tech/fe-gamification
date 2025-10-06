@@ -1,3 +1,4 @@
+// utils/api.js
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
 
@@ -36,67 +37,90 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("API Request Error:", error);
+    return Promise.reject(error);
+  }
 );
 
-// Response interceptor - CRITICAL: Don't update auth on non-auth endpoints
+// Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // IMPORTANT: Only update auth state for login/refresh endpoints
-    const authEndpoints = ["/v1/users/login", "/v1/users/refresh"];
-    const isAuthEndpoint = authEndpoints.some((endpoint) =>
-      response.config.url?.includes(endpoint)
-    );
-
-    // Don't automatically update auth state from non-auth endpoints
-    if (!isAuthEndpoint && response.data?.user) {
-      console.warn(
-        "Received user data from non-auth endpoint:",
-        response.config.url
-      );
-      // Don't update auth state here
-    }
+    // Log successful responses for debugging
+    console.log("API Response:", {
+      url: response.config.url,
+      status: response.status,
+      hasData: !!response.data,
+    });
 
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 errors (Unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
+      console.log("401 Error - Attempting token refresh...");
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
 
-        if (refreshToken) {
-          const response = await axios.post(
-            `${API_BASE_URL}/v1/users/refresh`,
-            {
-              refreshToken,
-            }
-          );
-
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-            response.data;
-
-          // Update tokens safely
-          const { setTokens } = useAuthStore.getState();
-          setTokens(newAccessToken, newRefreshToken, true); // skipUserCheck = true for refresh
-
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return api(originalRequest);
+        if (!refreshToken) {
+          throw new Error("No refresh token available");
         }
+
+        // Attempt to refresh the token
+        const response = await axios.post(
+          `${API_BASE_URL}/v1/users/refresh`,
+          { refreshToken },
+          { withCredentials: true }
+        );
+
+        const {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+          user: updatedUser,
+        } = response.data;
+
+        // Update auth store with new tokens and user data
+        const { setAuth, user: currentUser } = useAuthStore.getState();
+        const userToStore = updatedUser || currentUser;
+
+        setAuth(userToStore, newAccessToken, newRefreshToken);
+
+        console.log("Token refresh successful");
+
+        // Retry the original request with new token
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
-      }
 
-      const { clearAuth } = useAuthStore.getState();
-      clearAuth();
+        // Clear auth and redirect to login
+        const { clearAuth } = useAuthStore.getState();
+        clearAuth();
 
-      if (window.location.pathname !== "/sign-in") {
-        window.location.href = "/sign-in";
+        // Only redirect if not already on sign-in page
+        if (
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/sign-in"
+        ) {
+          window.location.href = "/sign-in";
+        }
+
+        return Promise.reject(refreshError);
       }
     }
+
+    // Log other errors
+    console.error("API Error:", {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data,
+    });
 
     return Promise.reject(error);
   }
@@ -109,11 +133,15 @@ export const apiEndpoints = {
   getUserInfo: "/v1/users/info-user",
   register: "/v1/users/register",
   logout: "/v1/users/logout",
+  refresh: "/v1/users/refresh",
+
+  // Dashboard endpoints
+  userDashboard: "/v1/dashboard/user-dashboard",
+  adminDashboard: "/v1/dashboard/admin-dashboard",
+  superDashboard: "/v1/dashboard/super-dashboard",
 
   // Add other endpoints as needed
   dashboard: "/v1/dashboard",
-  // courses: '/v1/courses',
-  // assignments: '/v1/assignments',
 };
 
 export default api;

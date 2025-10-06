@@ -13,8 +13,12 @@ import {
 import { FaShield } from "react-icons/fa6";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/auth";
+import api from "../utils/api";
 
 function SignIn() {
+  const { setAuth } = useAuthStore();
+
   const [formData, setFormData] = useState({
     userLogin: "",
     password: "",
@@ -88,24 +92,53 @@ function SignIn() {
       const sanitizedUserLogin = sanitizeUserLogin(formData.userLogin);
 
       const loginPayload = {
-        ...formData,
         userLogin: sanitizedUserLogin,
+        password: formData.password,
       };
 
-      // Simulated login process for demo
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // ACTUAL API CALL
+      const response = await api.post("/v1/users/login", loginPayload);
 
-      // Mock successful login
-      console.log("Quest Master login successful!", loginPayload);
+      console.log("Login response:", response.data);
 
-      // Redirect to dashboard or home page after successful login
-      // navigate('/dashboard'); // Uncomment this when you have a dashboard route
+      const { token, user } = response.data.data || response.data;
+
+      // Update auth store with user data and token
+      setAuth(user, token, null); // Your backend doesn't return refreshToken in this response
+
+      // Show success message
+      console.log("Login successful!", user);
+
+      // Navigate based on user role
+      if (user.role === "User") {
+        navigate("/users/dashboard");
+      } else if (user.role === "Admin") {
+        navigate("/admin/dashboard");
+      } else if (user.role === "Super") {
+        navigate("/super/dashboard");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Login failed:", error);
-      setErrors({
-        submit:
-          "Login quest failed. Check your credentials and try again, brave adventurer!",
-      });
+
+      // Handle different error types
+      if (error.response?.status === 401) {
+        setErrors({
+          submit:
+            "Invalid credentials. Please check your username/email and password.",
+        });
+      } else if (error.response?.status === 400) {
+        const errorMsg =
+          error.response.data?.error || "Please verify your email first";
+        setErrors({
+          emailVerification: errorMsg,
+        });
+      } else {
+        setErrors({
+          submit: "Login failed. Please try again.",
+        });
+      }
     } finally {
       setLoading(false);
     }

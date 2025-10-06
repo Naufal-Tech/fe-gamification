@@ -4,7 +4,7 @@ import React from "react";
 
 const CallToAction = () => {
   return (
-    <section className="py-20 bg-gray-900">
+    <section className="py-20 bg-gradient-to-b from-blue-600 to-gray-900">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

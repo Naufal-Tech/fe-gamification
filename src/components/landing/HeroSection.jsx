@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Award, Flame, Play, Sparkles, Star, Target } from "lucide-react";
+import { ChevronRight, Flame, Star, Target, Trophy } from "lucide-react";
 import React, { useState } from "react";
 import GameifiedTaskDemo from "./GameifiedTaskDemo";
 
@@ -8,7 +8,7 @@ const HeroSection = () => {
   const [xpPoints] = useState(1250);
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 py-20 lg:py-32">
+    <section className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 py-20 lg:py-25">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-purple-500/20 blur-3xl animate-pulse"></div>
@@ -32,7 +32,7 @@ const HeroSection = () => {
             className="flex justify-center mb-8"
           >
             <div className="inline-flex items-center px-6 py-3 bg-purple-500/20 backdrop-blur-sm rounded-full text-purple-200 text-sm font-medium border border-purple-400/30">
-              <Sparkles className="w-4 h-4 mr-2" />
+              <Star className="w-4 h-4 mr-2" />
               Level Up Your Productivity
             </div>
           </motion.div>
@@ -76,7 +76,7 @@ const HeroSection = () => {
               whileTap={{ scale: 0.95 }}
               className="px-10 py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center group"
             >
-              <Play className="w-6 h-6 mr-3 group-hover:translate-x-1 transition-transform" />
+              <ChevronRight className="w-6 h-6 mr-3 group-hover:translate-x-1 transition-transform" />
               Start Your Quest
             </motion.button>
             <motion.button
@@ -142,7 +142,7 @@ const HeroSection = () => {
               </div>
               <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center justify-center text-blue-400 mb-3">
-                  <Award className="w-8 h-8 mr-3" />
+                  <Trophy className="w-8 h-8 mr-3" />
                   <span className="font-bold text-4xl">23</span>
                 </div>
                 <p className="text-gray-300 text-lg font-medium">

@@ -2,7 +2,7 @@ import React, { Component, useEffect, useRef, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Footer, Header } from "../components/";
-import { AdminSidebar, StudentSidebar, SuperSidebar } from "../pages";
+import { AdminSidebar, SuperSidebar, UserSidebar } from "../pages";
 import { useAuthStore } from "../store/auth";
 
 // Error Boundary Component
@@ -29,56 +29,48 @@ class ErrorBoundary extends Component {
 
 function HomeLayout() {
   const { user, isAuthenticated, error } = useAuthStore();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar toggle
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebarCollapsed");
     return saved ? JSON.parse(saved) : false;
-  }); // Desktop sidebar collapse
+  });
   const location = useLocation();
 
-  // Ref for the sidebar element
   const sidebarRef = useRef(null);
 
-  // Persist sidebar collapse state
   useEffect(() => {
     localStorage.setItem("sidebarCollapsed", JSON.stringify(isCollapsed));
   }, [isCollapsed]);
 
-  // Handle click outside sidebar on mobile
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Only handle click outside on mobile when sidebar is open
       if (
         isSidebarOpen &&
         sidebarRef.current &&
         !sidebarRef.current.contains(event.target) &&
-        window.innerWidth < 768 // Only on mobile (below md breakpoint)
+        window.innerWidth < 768
       ) {
         setIsSidebarOpen(false);
       }
     };
 
-    // Add event listener when sidebar is open
     if (isSidebarOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("touchstart", handleClickOutside);
     }
 
-    // Cleanup event listeners
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isSidebarOpen]);
 
-  // Close sidebar when route changes on mobile
   useEffect(() => {
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
   }, [location.pathname]);
 
-  // Redirect on auth error
   useEffect(() => {
     if (error) {
       console.error("Auth error:", error);
@@ -96,14 +88,7 @@ function HomeLayout() {
     switch (user.role) {
       case "User":
         return (
-          <StudentSidebar
-            isCollapsed={isCollapsed}
-            toggleCollapse={toggleCollapse}
-          />
-        );
-      case "Guru":
-        return (
-          <TeacherSidebar
+          <UserSidebar
             isCollapsed={isCollapsed}
             toggleCollapse={toggleCollapse}
           />
@@ -111,13 +96,6 @@ function HomeLayout() {
       case "Admin":
         return (
           <AdminSidebar
-            isCollapsed={isCollapsed}
-            toggleCollapse={toggleCollapse}
-          />
-        );
-      case "Parents":
-        return (
-          <ParentSidebar
             isCollapsed={isCollapsed}
             toggleCollapse={toggleCollapse}
           />
@@ -134,45 +112,41 @@ function HomeLayout() {
     }
   };
 
-  // Check if current route is a dashboard route
   const isDashboardRoute = () => {
     const dashboardRoutes = [
-      "/parents/dashboard",
       "/admin/dashboard",
       "/super/dashboard",
-      "/teachers/dashboard",
-      "/students/dashboard",
+      "/users/dashboard",
     ];
     return dashboardRoutes.some((route) => location.pathname.includes(route));
   };
 
-  // Show footer on home page when not authenticated
   const showFooter =
     !isAuthenticated && !isDashboardRoute() && location.pathname === "/";
 
   return (
     <div
-      className={`min-h-screen bg-gray-50 dark:bg-gray-900 w-full max-w-none ${
+      className={`min-h-screen w-full ${
         isAuthenticated
-          ? "grid grid-cols-1 md:grid-cols-[auto_1fr]"
+          ? "flex flex-col md:flex-row bg-gray-50 dark:bg-gray-900" // Changed to flex layout
           : "flex flex-col"
       }`}
     >
-      {/* Mobile Overlay - Transparent clickable area */}
+      {/* Mobile Overlay */}
       {isAuthenticated && isSidebarOpen && (
         <div
-          className="fixed inset-0 z-30 md:hidden"
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar (only for authenticated users) */}
+      {/* Sidebar */}
       {isAuthenticated && (
         <div
           ref={sidebarRef}
           className={`
             fixed inset-y-0 left-0 z-40 transform transition-all duration-300
-            md:sticky md:top-0 md:translate-x-0
+            md:relative md:translate-x-0 md:flex-shrink-0
             ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
             ${isCollapsed ? "md:w-16" : "md:w-64"}
             bg-white dark:bg-gray-800 shadow-lg
@@ -190,14 +164,18 @@ function HomeLayout() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col w-full max-w-none">
+      <div className="flex-1 flex flex-col min-h-screen w-full">
         <Header
           toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
           toggleCollapse={toggleCollapse}
           isSidebarOpen={isSidebarOpen}
           isCollapsed={isCollapsed}
         />
-        <main className="flex-1 p-6 w-full max-w-none">
+        <main
+          className={`flex-1 w-full ${
+            isAuthenticated ? "p-6 bg-gray-50 dark:bg-gray-900" : ""
+          }`}
+        >
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

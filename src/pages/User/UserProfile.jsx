@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
+import { AiFillTrophy } from "react-icons/ai";
 import {
-  FiEdit3,
+  FiAward,
   FiEye,
   FiEyeOff,
-  FiMail,
-  FiPhone,
-  FiSettings,
-  FiShield,
+  FiStar,
   FiUpload,
   FiUser,
+  FiZap,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -16,7 +15,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "../../store/auth";
 import api from "../../utils/api";
 
-function AdminProfile() {
+function UserProfile() {
   const { user, accessToken, setUser } = useAuthStore();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -233,18 +232,22 @@ function AdminProfile() {
     }
   };
 
-  if (!user || user.role !== "Admin") {
+  if (!user || user.role !== "User") {
     navigate("/");
     return null;
   }
 
   const imageToDisplay = profileImage.preview || profileImage.current;
 
+  // Calculate level from XP
+  const getLevelFromXP = (xp) => Math.floor(xp / 1000) + 1;
+  const getXPProgress = (xp) => xp % 1000;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Profile Header Card */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl shadow-xl overflow-hidden mb-6">
+        <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-xl shadow-xl overflow-hidden mb-6">
           <div className="px-6 py-8 text-white">
             <div className="flex flex-col md:flex-row items-center gap-6">
               <div className="relative group">
@@ -264,7 +267,7 @@ function AdminProfile() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current.click()}
-                  className="absolute bottom-0 right-0 p-2 bg-white text-blue-600 rounded-full shadow-lg hover:scale-110 transition-transform"
+                  className="absolute bottom-0 right-0 p-2 bg-white text-purple-600 rounded-full shadow-lg hover:scale-110 transition-transform"
                   title="Change photo"
                 >
                   <FiUpload className="w-5 h-5" />
@@ -272,83 +275,65 @@ function AdminProfile() {
               </div>
 
               <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">
-                    {user.fullName || user.username}
-                  </h1>
-                  <div className="bg-yellow-400 text-blue-900 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                    <FiShield className="w-4 h-4" />
-                    Admin
-                  </div>
-                </div>
-                <p className="text-blue-100 mb-4">@{user.username}</p>
+                <h1 className="text-3xl font-bold mb-2">
+                  {user.fullName || user.username}
+                </h1>
+                <p className="text-purple-100 mb-4">@{user.username}</p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
                     <div className="flex items-center justify-center gap-2 mb-1">
-                      <FiMail className="text-blue-200" />
-                      <span className="text-sm text-blue-100">Email</span>
+                      <FiStar className="text-yellow-300" />
+                      <span className="text-sm text-purple-100">Level</span>
                     </div>
-                    <div className="text-sm font-medium truncate">
-                      {user.email}
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <FiPhone className="text-blue-200" />
-                      <span className="text-sm text-blue-100">Phone</span>
-                    </div>
-                    <div className="text-sm font-medium">
-                      {user.phoneNumber || "Not set"}
+                    <div className="text-2xl font-bold">
+                      {getLevelFromXP(user.totalXP || 0)}
                     </div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
                     <div className="flex items-center justify-center gap-2 mb-1">
-                      <FiSettings className="text-blue-200" />
-                      <span className="text-sm text-blue-100">Role</span>
+                      <FiZap className="text-yellow-300" />
+                      <span className="text-sm text-purple-100">XP</span>
                     </div>
-                    <div className="text-sm font-medium capitalize">
-                      {user.role}
+                    <div className="text-2xl font-bold">
+                      {user.totalXP || 0}
                     </div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
                     <div className="flex items-center justify-center gap-2 mb-1">
-                      <FiUser className="text-blue-200" />
-                      <span className="text-sm text-blue-100">Status</span>
+                      <AiFillTrophy className="text-yellow-300" />
+                      <span className="text-sm text-purple-100">Streak</span>
                     </div>
-                    <div className="text-sm font-medium">
-                      {user.isVerified ? "Verified" : "Pending"}
+                    <div className="text-2xl font-bold">
+                      {user.currentStreak || 0}
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <FiAward className="text-yellow-300" />
+                      <span className="text-sm text-purple-100">Tasks</span>
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {user.totalTasksCompleted || 0}
                     </div>
                   </div>
                 </div>
 
-                {/* Admin Stats */}
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                    <div className="text-xs text-blue-100 mb-1">
-                      Member Since
-                    </div>
-                    <div className="text-sm font-medium">
-                      {user.created_at
-                        ? new Date(user.created_at).toLocaleDateString()
-                        : "N/A"}
-                    </div>
+                {/* XP Progress Bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Progress to next level</span>
+                    <span>{getXPProgress(user.totalXP || 0)}/1000 XP</span>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                    <div className="text-xs text-blue-100 mb-1">Last Login</div>
-                    <div className="text-sm font-medium">
-                      {user.lastLogin
-                        ? new Date(user.lastLogin).toLocaleDateString()
-                        : "N/A"}
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                    <div className="text-xs text-blue-100 mb-1">
-                      Last Active
-                    </div>
-                    <div className="text-sm font-medium">
-                      {user.LastActiveStatus || "N/A"}
-                    </div>
+                  <div className="w-full bg-white/20 rounded-full h-2">
+                    <div
+                      className="bg-yellow-400 h-2 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          (getXPProgress(user.totalXP || 0) / 1000) * 100
+                        }%`,
+                      }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -358,15 +343,10 @@ function AdminProfile() {
 
         {/* Edit Profile Form */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <FiEdit3 className="w-6 h-6 text-white" />
-              <h2 className="text-2xl font-bold text-white">
-                Admin Profile Settings
-              </h2>
-            </div>
-            <p className="mt-1 text-blue-100">
-              Manage your administrator account information
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+            <h2 className="text-2xl font-bold text-white">Edit Profile</h2>
+            <p className="mt-1 text-indigo-100">
+              Update your account information
             </p>
           </div>
 
@@ -379,64 +359,6 @@ function AdminProfile() {
                 accept="image/*"
                 className="hidden"
               />
-
-              {/* Profile Image Section */}
-              <div className="flex flex-col items-center sm:flex-row sm:items-start space-y-6 sm:space-y-0 sm:space-x-8">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
-                    {imageToDisplay ? (
-                      <img
-                        src={imageToDisplay}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                        <FiUser className="w-12 h-12" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current.click()}
-                      className="p-2 bg-white bg-opacity-80 rounded-full text-blue-600 hover:bg-opacity-100 transition-all"
-                      title="Change photo"
-                    >
-                      <FiUpload className="w-4 h-4" />
-                    </button>
-                    {imageToDisplay && (
-                      <button
-                        type="button"
-                        onClick={removeImage}
-                        className="ml-2 p-2 bg-white bg-opacity-80 rounded-full text-red-600 hover:bg-opacity-100 transition-all"
-                        title="Remove photo"
-                      >
-                        <FiUser className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex-1 w-full">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Profile Photo
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Recommended size: 500x500px. Max file size: 2MB.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current.click()}
-                      className="mt-2 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <FiUpload className="-ml-1 mr-2 h-4 w-4" />
-                      Upload photo
-                    </button>
-                  </div>
-                </div>
-              </div>
 
               {/* Form Fields */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -454,7 +376,7 @@ function AdminProfile() {
                     id="username"
                     value={formData.username}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -472,7 +394,7 @@ function AdminProfile() {
                     id="fullName"
                     value={formData.fullName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -490,7 +412,7 @@ function AdminProfile() {
                     id="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -508,15 +430,14 @@ function AdminProfile() {
                     id="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Password Section */}
               <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <FiShield className="w-5 h-5" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Change Password
                 </h3>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -534,7 +455,7 @@ function AdminProfile() {
                       id="currentPassword"
                       value={formData.currentPassword}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="Leave blank to keep current"
                     />
                   </div>
@@ -554,13 +475,13 @@ function AdminProfile() {
                         id="newPassword"
                         value={formData.newPassword}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         placeholder="Leave blank to keep current"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                       >
                         {showNewPassword ? (
                           <FiEyeOff className="h-5 w-5" />
@@ -586,7 +507,7 @@ function AdminProfile() {
                         id="reconfirmPassword"
                         value={formData.reconfirmPassword}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         placeholder="Confirm your new password"
                       />
                       <button
@@ -594,7 +515,7 @@ function AdminProfile() {
                         onClick={() =>
                           setShowReconfirmPassword(!showReconfirmPassword)
                         }
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                       >
                         {showReconfirmPassword ? (
                           <FiEyeOff className="h-5 w-5" />
@@ -612,14 +533,14 @@ function AdminProfile() {
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
-                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
                   disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   disabled={loading || !hasChanges}
                 >
                   {loading ? (
@@ -659,4 +580,4 @@ function AdminProfile() {
   );
 }
 
-export default AdminProfile;
+export default UserProfile;

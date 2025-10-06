@@ -1,82 +1,76 @@
 import React from "react";
 import {
-  FaBook,
   FaChartLine,
-  FaChartPie,
   FaChevronLeft,
   FaChevronRight,
-  FaClipboardCheck,
-  FaGraduationCap,
+  FaFire,
   FaHome,
+  FaMedal,
+  FaStar,
   FaTasks,
   FaTrophy,
   FaUser,
-  FaUsers,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 
-const StudentSidebar = ({ isCollapsed, toggleCollapse }) => {
+const UserSidebar = ({ isCollapsed, toggleCollapse }) => {
   const navGroups = [
     {
-      label: "Academics",
+      label: "Dashboard",
       links: [
         {
-          to: "/students/dashboard",
-          label: "Dashboard",
+          to: "/users/dashboard",
+          label: "Home",
           icon: <FaHome className="h-5 w-5" />,
         },
+      ],
+    },
+    {
+      label: "Daily Activities",
+      links: [
         {
-          to: "/students/assignments",
-          label: "Tugas",
+          to: "/users/daily-tasks",
+          label: "Daily Quests",
           icon: <FaTasks className="h-5 w-5" />,
         },
         {
-          to: "/students/exams",
-          label: "Ujian",
-          icon: <FaGraduationCap className="h-5 w-5" />,
-        },
-        {
-          to: "/students/classes",
-          label: "Kelas",
-          icon: <FaUsers className="h-5 w-5" />,
-        },
-        {
-          to: "/students/resources",
-          label: "Study Resources",
-          icon: <FaBook className="h-5 w-5" />,
+          to: "/users/due-dates", // Consistent route
+          label: "Due Dates", // Consistent label
+          icon: <FaFire className="h-5 w-5" />,
         },
       ],
     },
     {
-      label: "Performance",
+      label: "Progress & Achievements",
       links: [
         {
-          to: "/students/assignment-grades",
-          label: "Nilai Tugas",
-          icon: <FaClipboardCheck className="h-5 w-5" />,
-        },
-        {
-          to: "/students/exam-grades",
-          label: "Nilai Ujian",
+          to: "/users/milestones",
+          label: "Milestones",
           icon: <FaTrophy className="h-5 w-5" />,
         },
         {
-          to: "/students/reports-exam",
-          label: "Reports Exam",
-          icon: <FaChartLine className="h-5 w-5" />,
+          to: "/users/badges",
+          label: "Badges",
+          icon: <FaMedal className="h-5 w-5" />,
         },
         {
-          to: "/students/reports-tugas",
-          label: "Reports Tugas",
-          icon: <FaChartPie className="h-5 w-5" />,
+          to: "/users/xp-stats",
+          label: "XP & Stats",
+          icon: <FaStar className="h-5 w-5" />,
+        },
+        {
+          to: "/users/leaderboard",
+          label: "Leaderboard",
+          icon: <FaChartLine className="h-5 w-5" />,
         },
       ],
     },
+
     {
       label: "Account",
       links: [
         {
-          to: "/students/profile",
+          to: "/users/profile",
           label: "Profile",
           icon: <FaUser className="h-5 w-5" />,
         },
@@ -88,12 +82,12 @@ const StudentSidebar = ({ isCollapsed, toggleCollapse }) => {
     <div
       className={`${
         isCollapsed ? "w-16" : "w-64"
-      } bg-white dark:bg-gray-800 h-screen p-4 shadow-lg transition-all duration-200 flex flex-col sticky top-0`}
+      } bg-white dark:bg-gray-800 h-full p-4 shadow-lg transition-all duration-200 flex flex-col fixed top-0 left-0 md:sticky md:top-0 md:h-full`} // Changed h-screen to h-full
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         {!isCollapsed && (
           <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-            Menu Siswa
+            Quest Master
           </div>
         )}
         <button
@@ -108,11 +102,11 @@ const StudentSidebar = ({ isCollapsed, toggleCollapse }) => {
           )}
         </button>
       </div>
-      <nav className="flex-1 space-y-4 overflow-y-auto">
+      <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden">
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-2">
             {!isCollapsed && (
-              <h3 className="px-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
+              <h3 className="px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {group.label}
               </h3>
             )}
@@ -120,8 +114,7 @@ const StudentSidebar = ({ isCollapsed, toggleCollapse }) => {
               <NavLink
                 key={link.to}
                 to={link.to}
-                // 'end' prop ensures the dashboard link is only active when exactly on /student/dashboard
-                end={link.to === "/students/dashboard"}
+                end={link.to === "/users/dashboard"}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 p-2 rounded-lg transition-all duration-200 ${
                     isActive
@@ -132,7 +125,7 @@ const StudentSidebar = ({ isCollapsed, toggleCollapse }) => {
                 title={isCollapsed ? link.label : ""}
               >
                 {link.icon}
-                {!isCollapsed && <span>{link.label}</span>}
+                {!isCollapsed && <span className="text-sm">{link.label}</span>}
               </NavLink>
             ))}
           </div>
@@ -142,4 +135,4 @@ const StudentSidebar = ({ isCollapsed, toggleCollapse }) => {
   );
 };
 
-export default StudentSidebar;
+export default UserSidebar;

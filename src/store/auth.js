@@ -1,6 +1,6 @@
+// store/auth.js
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import api from "../utils/api";
 
 export const useAuthStore = create(
   persist(
@@ -10,9 +10,9 @@ export const useAuthStore = create(
       accessToken: null,
       refreshToken: null,
       error: null,
+      isLoading: false, // Add loading state
 
       setAuth: (user, accessToken, refreshToken = null) => {
-        // Store token in localStorage for API interceptor
         if (accessToken) {
           localStorage.setItem("accessToken", accessToken);
         }
@@ -26,64 +26,15 @@ export const useAuthStore = create(
           accessToken,
           refreshToken,
           error: null,
+          isLoading: false,
         });
       },
 
-      // IMPORTANT: Only update user data, not tokens
       setUser: (user) => set({ user }),
 
-      // IMPORTANT: Only update tokens if it's the same user
-      setTokens: (accessToken, refreshToken = null, skipUserCheck = false) => {
-        const currentUser = get().user;
-
-        // Prevent token replacement unless explicitly allowed
-        if (!skipUserCheck && currentUser) {
-          console.warn(
-            "Attempted to update tokens while user is logged in. Use skipUserCheck=true if intentional."
-          );
-          return;
-        }
-
-        if (accessToken) {
-          localStorage.setItem("accessToken", accessToken);
-        }
-        if (refreshToken) {
-          localStorage.setItem("refreshToken", refreshToken);
-        }
-
-        set({
-          accessToken,
-          refreshToken: refreshToken || get().refreshToken,
-          error: null,
-        });
-      },
-
-      // Safe method to refresh current user data without changing tokens
-      refreshUserData: async () => {
-        const { accessToken } = get();
-        if (!accessToken) return null;
-
-        try {
-          const response = await api.get("/v1/users/info-user", {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-
-          if (!response.ok) throw new Error("Failed to refresh user data");
-
-          const data = await response.json();
-          const userData = data.data || data.user;
-
-          // Only update user data, keep existing tokens
-          set({ user: userData });
-          return userData;
-        } catch (error) {
-          console.error("Failed to refresh user data:", error);
-          throw error;
-        }
-      },
+      setLoading: (loading) => set({ isLoading: loading }),
 
       clearAuth: () => {
-        // Clear all auth-related data from localStorage
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("authToken");
@@ -94,6 +45,7 @@ export const useAuthStore = create(
           accessToken: null,
           refreshToken: null,
           error: null,
+          isLoading: false,
         });
       },
 
@@ -102,24 +54,6 @@ export const useAuthStore = create(
       isValidAuth: () => {
         const state = get();
         return !!(state.isAuthenticated && state.accessToken && state.user);
-      },
-
-      initializeAuth: () => {
-        const accessToken = localStorage.getItem("accessToken");
-        const refreshToken = localStorage.getItem("refreshToken");
-        const state = get();
-
-        if (accessToken && !state.accessToken) {
-          set({
-            accessToken,
-            refreshToken,
-            isAuthenticated: !!state.user,
-          });
-        }
-
-        if (!accessToken && state.isAuthenticated) {
-          get().clearAuth();
-        }
       },
     }),
     {
