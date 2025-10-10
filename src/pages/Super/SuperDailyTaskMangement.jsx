@@ -32,7 +32,6 @@ const SuperDailyTaskManagement = () => {
     userId: "",
     category: "",
     status: "",
-    deadline: "",
     sort: "recently",
     page: 1,
     limit: 20,
@@ -46,6 +45,7 @@ const SuperDailyTaskManagement = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [activeTab, setActiveTab] = useState("all");
 
+  // FIXED: Use the new admin endpoint
   const {
     data: tasksData,
     isLoading,
@@ -55,22 +55,25 @@ const SuperDailyTaskManagement = () => {
     queryKey: ["superTasks", filters, activeTab],
     queryFn: async () => {
       const params = new URLSearchParams();
+
+      // Add filters to params
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value !== "") {
           params.append(key, value.toString());
         }
       });
 
-      // Add view-specific filters
-      if (activeTab === "overdue") {
-        params.append("view", "overdue");
-      } else if (activeTab === "today") {
-        params.append("view", "today");
-      } else if (activeTab === "completed") {
-        params.append("completed", "true");
+      // Add status based on active tab
+      if (activeTab === "completed") {
+        params.append("status", "completed");
+      } else if (activeTab === "pending") {
+        params.append("status", "pending");
+      } else if (activeTab === "overdue") {
+        params.append("status", "overdue");
       }
 
-      const response = await api.get(`/v1/daily-tasks?${params}`, {
+      // Use the admin endpoint for Super users
+      const response = await api.get(`/v1/daily-tasks/admin/all?${params}`, {
         withCredentials: true,
       });
       return response.data;
@@ -115,26 +118,6 @@ const SuperDailyTaskManagement = () => {
     },
   });
 
-  const bulkActionMutation = useMutation({
-    mutationFn: async ({ action, taskIds }) => {
-      const responses = await Promise.all(
-        taskIds.map((taskId) =>
-          api.post(
-            `/v1/daily-tasks/${taskId}/${action}`,
-            {},
-            { withCredentials: true }
-          )
-        )
-      );
-      return responses;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["superTasks"]);
-      setBulkSelection([]);
-      setShowBulkActions(false);
-    },
-  });
-
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   };
@@ -153,27 +136,24 @@ const SuperDailyTaskManagement = () => {
     setShowDeleteModal(true);
   };
 
-  const handleToggleComplete = (task) => {
-    if (task.completedToday) {
-      // Uncomplete task
-      updateMutation.mutate({
-        taskId: task._id,
-        data: { completedToday: false },
-      });
-    } else {
-      // Complete task
-      api
-        .post(
+  const handleToggleComplete = async (task) => {
+    try {
+      if (task.completedToday) {
+        await api.post(
+          `/v1/daily-tasks/uncomplete/${task._id}`,
+          {},
+          { withCredentials: true }
+        );
+      } else {
+        await api.post(
           `/v1/daily-tasks/${task._id}/complete`,
           {},
-          {
-            withCredentials: true,
-          }
-        )
-        .then(() => {
-          queryClient.invalidateQueries(["superTasks"]);
-        })
-        .catch(console.error);
+          { withCredentials: true }
+        );
+      }
+      queryClient.invalidateQueries(["superTasks"]);
+    } catch (error) {
+      console.error("Toggle complete error:", error);
     }
   };
 
@@ -189,42 +169,43 @@ const SuperDailyTaskManagement = () => {
     );
   };
 
-  const handleBulkAction = (action) => {
+  const handleBulkAction = async (action) => {
     if (bulkSelection.length === 0) return;
 
-    if (action === "complete") {
-      // Bulk complete tasks
-      Promise.all(
-        bulkSelection.map((taskId) =>
-          api.post(
-            `/v1/daily-tasks/${taskId}/complete`,
-            {},
-            {
-              withCredentials: true,
-            }
+    try {
+      if (action === "complete") {
+        await Promise.all(
+          bulkSelection.map((taskId) =>
+            api.post(
+              `/v1/daily-tasks/${taskId}/complete`,
+              {},
+              { withCredentials: true }
+            )
           )
-        )
-      ).then(() => {
-        queryClient.invalidateQueries(["superTasks"]);
-        setBulkSelection([]);
-        setShowBulkActions(false);
-      });
-    } else if (action === "uncomplete") {
-      // Bulk uncomplete tasks
-      Promise.all(
-        bulkSelection.map((taskId) =>
-          updateMutation.mutate({
-            taskId,
-            data: { completedToday: false },
-          })
-        )
-      ).then(() => {
-        queryClient.invalidateQueries(["superTasks"]);
-        setBulkSelection([]);
-        setShowBulkActions(false);
-      });
-    } else {
-      bulkActionMutation.mutate({ action, taskIds: bulkSelection });
+        );
+      } else if (action === "uncomplete") {
+        await Promise.all(
+          bulkSelection.map((taskId) =>
+            api.post(
+              `/v1/daily-tasks/uncomplete/${taskId}`,
+              {},
+              { withCredentials: true }
+            )
+          )
+        );
+      } else if (action === "delete") {
+        await Promise.all(
+          bulkSelection.map((taskId) =>
+            api.delete(`/v1/daily-tasks/${taskId}`, { withCredentials: true })
+          )
+        );
+      }
+
+      queryClient.invalidateQueries(["superTasks"]);
+      setBulkSelection([]);
+      setShowBulkActions(false);
+    } catch (error) {
+      console.error("Bulk action error:", error);
     }
   };
 
@@ -238,29 +219,18 @@ const SuperDailyTaskManagement = () => {
   };
 
   const stats = useMemo(() => {
-    const tasks = tasksData?.tasks || [];
-    const totalXP = tasks.reduce((sum, task) => sum + (task.xpReward || 0), 0);
-    const completedTasks = tasks.filter((task) => task.completedToday).length;
-    const overdueTasks = tasks.filter((task) => task.isOverdue).length;
-    const activeTasks = tasks.filter((task) => task.isActive).length;
-
-    // User statistics
-    const uniqueUsers = [
-      ...new Set(tasks.map((task) => task.userId?._id || task.userId)),
-    ].length;
-
-    return {
-      total: tasks.length,
-      completed: completedTasks,
-      overdue: overdueTasks,
-      active: activeTasks,
-      totalXP,
-      uniqueUsers,
-      completionRate:
-        tasks.length > 0
-          ? Math.round((completedTasks / tasks.length) * 100)
-          : 0,
-    };
+    return (
+      tasksData?.stats || {
+        totalTasks: 0,
+        activeTasks: 0,
+        completedToday: 0,
+        overdueTasks: 0,
+        totalXP: 0,
+        earnedXP: 0,
+        uniqueUsers: 0,
+        completionRate: 0,
+      }
+    );
   }, [tasksData]);
 
   const tasks = tasksData?.tasks || [];
@@ -290,8 +260,8 @@ const SuperDailyTaskManagement = () => {
               Super Task Management
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Manage daily tasks across all users with full administrative
-              control
+              Manage daily tasks across all users • {stats.totalTasks} total
+              tasks
             </p>
           </div>
 
@@ -345,7 +315,16 @@ const SuperDailyTaskManagement = () => {
               </div>
             )}
 
-            {/* Action Buttons */}
+            {/* Refresh Button */}
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+              title="Refresh"
+            >
+              <FaSync className="h-4 w-4" />
+            </button>
+
+            {/* Create Task Button */}
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
@@ -357,30 +336,30 @@ const SuperDailyTaskManagement = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
           <StatCard
             icon={<FaTasks />}
             title="Total Tasks"
-            value={stats.total}
+            value={stats.totalTasks}
             color="purple"
           />
           <StatCard
             icon={<FaCheckCircle />}
             title="Completed"
-            value={stats.completed}
+            value={stats.completedToday}
             color="green"
             subtitle={`${stats.completionRate}%`}
           />
           <StatCard
             icon={<FaExclamationTriangle />}
             title="Overdue"
-            value={stats.overdue}
+            value={stats.overdueTasks}
             color="red"
           />
           <StatCard
             icon={<FaFire />}
             title="Active"
-            value={stats.active}
+            value={stats.activeTasks}
             color="orange"
           />
           <StatCard
@@ -390,20 +369,26 @@ const SuperDailyTaskManagement = () => {
             color="yellow"
           />
           <StatCard
+            icon={<FaCheckCircle />}
+            title="Earned XP"
+            value={stats.earnedXP}
+            color="blue"
+          />
+          <StatCard
             icon={<FaUser />}
             title="Users"
             value={stats.uniqueUsers}
-            color="blue"
+            color="indigo"
           />
         </div>
 
         {/* Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="-mb-px flex space-x-8 px-6">
+            <nav className="-mb-px flex space-x-8 px-6 overflow-x-auto">
               {[
                 { id: "all", name: "All Tasks", icon: FaList },
-                { id: "today", name: "Due Today", icon: FaCalendar },
+                { id: "pending", name: "Pending", icon: FaClock },
                 { id: "overdue", name: "Overdue", icon: FaExclamationTriangle },
                 { id: "completed", name: "Completed", icon: FaCheckCircle },
               ].map((tab) => {
@@ -412,7 +397,7 @@ const SuperDailyTaskManagement = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
                       activeTab === tab.id
                         ? "border-purple-500 text-purple-600 dark:text-purple-400"
                         : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
@@ -453,7 +438,6 @@ const SuperDailyTaskManagement = () => {
                       userId: "",
                       category: "",
                       status: "",
-                      deadline: "",
                       sort: "recently",
                       page: 1,
                       limit: 20,
@@ -511,17 +495,41 @@ const SuperDailyTaskManagement = () => {
                 className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
               >
                 <option value="recently">Recently Created</option>
+                <option value="oldest">Oldest First</option>
                 <option value="deadline">Deadline (Soonest)</option>
-                <option value="deadline_desc">Deadline (Latest)</option>
                 <option value="xp">XP (High to Low)</option>
-                <option value="title">Title A-Z</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Tasks Display */}
-        {viewMode === "grid" ? (
+        {/* Empty State or Tasks Display */}
+        {tasks.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaTasks className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                No tasks found
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                {filters.search || filters.userId || filters.category
+                  ? "Try adjusting your filters to see more tasks"
+                  : "Get started by creating your first task"}
+              </p>
+              {!filters.search && !filters.userId && !filters.category && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                >
+                  <FaPlus className="h-4 w-4" />
+                  Create Task
+                </button>
+              )}
+            </div>
+          </div>
+        ) : viewMode === "grid" ? (
           <TaskGridView
             tasks={tasks}
             bulkSelection={bulkSelection}
@@ -658,7 +666,6 @@ const SuperDailyTaskManagement = () => {
           selectedCount={bulkSelection.length}
           onAction={handleBulkAction}
           onClose={() => setShowBulkActions(false)}
-          isProcessing={bulkActionMutation.isLoading}
         />
       )}
 
@@ -681,8 +688,8 @@ const LoadingSkeleton = () => (
   <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse"></div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+        {[...Array(7)].map((_, i) => (
           <div
             key={i}
             className="h-24 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse"
@@ -726,7 +733,7 @@ const ErrorState = ({ error, onRetry }) => (
 );
 
 // StatCard Component
-const StatCard = ({ icon, title, value, color, subtitle, trend }) => {
+const StatCard = ({ icon, title, value, color, subtitle }) => {
   const colorClasses = {
     blue: "bg-blue-500",
     green: "bg-green-500",
@@ -749,11 +756,6 @@ const StatCard = ({ icon, title, value, color, subtitle, trend }) => {
             <p className="text-xl font-bold text-gray-900 dark:text-white truncate">
               {value}
             </p>
-            {trend && (
-              <span className="text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-1.5 py-0.5 rounded">
-                {trend}
-              </span>
-            )}
           </div>
           {subtitle && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

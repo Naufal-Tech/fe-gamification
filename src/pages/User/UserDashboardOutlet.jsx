@@ -1,33 +1,40 @@
 import { useQuery } from "@tanstack/react-query";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/auth";
 import api from "../../utils/api";
 
 const UserDashboardOutlet = () => {
-  const { user, isAuthenticated, accessToken, clearAuth, setAuth } =
+  const { user, isAuthenticated, accessToken, clearAuth, setUser } =
     useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ✅ Prevent duplicate auth checks
+  const hasCheckedAuth = useRef(false);
+
   useEffect(() => {
+    if (hasCheckedAuth.current) return;
+
     if (!isAuthenticated) {
       console.log("Not authenticated, redirecting to sign-in");
-      navigate("/sign-in");
+      navigate("/sign-in", { replace: true });
+      hasCheckedAuth.current = true;
     } else if (user?.role !== "User") {
       console.log("redirecting to sign-in");
-      navigate("/sign-in");
+      navigate("/sign-in", { replace: true });
+      hasCheckedAuth.current = true;
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user?.role, navigate]);
 
-  // Fetch full user details
+  // ✅ CRITICAL FIX: Only fetch user details ONCE when needed
   const {
     data: userDetails,
     isLoading,
     error,
-    refetch, // Added refetch to allow manual retry
+    refetch,
   } = useQuery({
-    queryKey: ["userDetails"],
+    queryKey: ["userDetails", user?._id], // ✅ Added user ID to key
     queryFn: async () => {
       const config = {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
@@ -36,28 +43,36 @@ const UserDashboardOutlet = () => {
       const response = await api.get("/v1/users/info-user", config);
       console.log("User details fetched:", response.data);
       const fullUser = response.data.user;
-      setAuth(fullUser, accessToken); // Update auth store with full details
+
+      // ✅ Only update if data actually changed
+      if (JSON.stringify(fullUser) !== JSON.stringify(user)) {
+        setUser(fullUser); // Don't call setAuth, just setUser to avoid token refresh
+      }
+
       return fullUser;
     },
-    enabled: isAuthenticated && user?.role === "User",
-    staleTime: 5 * 60 * 1000,
+    enabled: isAuthenticated && user?.role === "User" && !!user?._id,
+    staleTime: 10 * 60 * 1000, // ✅ Increased to 10 minutes
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false, // ✅ Prevent refetch on focus
+    refetchOnMount: false, // ✅ Prevent refetch on remount
+    refetchOnReconnect: false, // ✅ Prevent refetch on reconnect
+    retry: 1, // ✅ Only retry once
     onError: (err) => {
       console.error("Error fetching user details:", {
         message: err.message,
         status: err.response?.status,
-        data: err.response?.data,
       });
+
       if (err.response?.status === 401) {
-        console.log(
-          "Session expired (401), clearing auth and redirecting to sign-in"
-        );
+        console.log("Session expired (401), clearing auth");
         clearAuth();
         navigate("/sign-in", { replace: true });
       }
     },
   });
 
-  // Handle session expiration - redirect immediately if 401 error
+  // Handle session expiration
   useEffect(() => {
     if (error?.response?.status === 401) {
       console.log("Session expired detected, redirecting to sign-in");
@@ -66,7 +81,7 @@ const UserDashboardOutlet = () => {
     }
   }, [error, clearAuth, navigate]);
 
-  // Loading state with skeleton loader (similar to teacher dashboard)
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex-1 p-6 bg-gray-100 dark:bg-gray-900">
@@ -83,7 +98,7 @@ const UserDashboardOutlet = () => {
     );
   }
 
-  // For 401 errors (session expired), redirect immediately instead of showing error UI
+  // For 401 errors, redirect immediately
   if (error?.response?.status === 401) {
     console.log("401 error in render, redirecting to sign-in");
     clearAuth();
@@ -97,7 +112,7 @@ const UserDashboardOutlet = () => {
         <div className="text-red-600 dark:text-red-400 text-lg text-center">
           Error loading user data. Please try again.
           <button
-            onClick={() => refetch()} // Use refetch from react-query
+            onClick={() => refetch()}
             className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
           >
             Retry

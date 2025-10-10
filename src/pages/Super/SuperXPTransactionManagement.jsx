@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
 import {
   FaArrowDown,
+  FaArrowRight,
   FaArrowUp,
   FaChartLine,
   FaChevronLeft,
@@ -20,7 +21,7 @@ import {
 } from "react-icons/fa";
 import api from "../../utils/api";
 
-const XPTransactionManagement = () => {
+const SuperXPTransactionManagement = () => {
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState({
     search: "",
@@ -1219,4 +1220,4 @@ const CreateManualTransactionModal = ({
   );
 };
 
-export default XPTransactionManagement;
+export default SuperXPTransactionManagement;

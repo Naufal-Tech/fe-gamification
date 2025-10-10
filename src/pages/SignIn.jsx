@@ -18,34 +18,14 @@ import api from "../utils/api";
 
 function SignIn() {
   const { setAuth } = useAuthStore();
-
   const [formData, setFormData] = useState({
     userLogin: "",
     password: "",
   });
-
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  // Helper function to sanitize user input
-  const sanitizeUserLogin = (input) => {
-    const trimmed = input.trim();
-
-    // Check if input looks like an email (contains @ symbol)
-    if (trimmed.includes("@")) {
-      return trimmed.toLowerCase(); // Email should be lowercase
-    }
-
-    // Check if input looks like a phone number (contains only digits, spaces, +, -, (, ))
-    if (/^[\d\s+\-()]+$/.test(trimmed)) {
-      return trimmed.replace(/\s+/g, ""); // Remove spaces from phone numbers
-    }
-
-    // For username, convert to lowercase for case-insensitive matching
-    return trimmed.toLowerCase();
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,11 +44,8 @@ function SignIn() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Validate userLogin after sanitization
-    const sanitizedUserLogin = sanitizeUserLogin(formData.userLogin);
-    if (!sanitizedUserLogin) {
-      newErrors.userLogin =
-        "Champion ID, Email, or Phone required to enter the realm";
+    if (!formData.userLogin.trim()) {
+      newErrors.userLogin = "Champion ID, Email, or Phone required";
     }
 
     if (!formData.password) {
@@ -88,41 +65,59 @@ function SignIn() {
 
     setLoading(true);
     try {
-      // Sanitize the userLogin before sending to API
-      const sanitizedUserLogin = sanitizeUserLogin(formData.userLogin);
+      const sanitizedUserLogin = formData.userLogin.trim().toLowerCase();
 
       const loginPayload = {
         userLogin: sanitizedUserLogin,
         password: formData.password,
       };
 
-      // ACTUAL API CALL
       const response = await api.post("/v1/users/login", loginPayload);
 
       console.log("Login response:", response.data);
 
-      const { token, user } = response.data.data || response.data;
+      const { token, user, tasksReset, resetStats } =
+        response.data.data || response.data;
 
-      // Update auth store with user data and token
-      setAuth(user, token, null); // Your backend doesn't return refreshToken in this response
+      // ✅ Enhanced: Pass task reset information to auth store
+      setAuth(user, token, null, { tasksReset, resetStats });
 
-      // Show success message
+      // Store last active date
+      localStorage.setItem(`lastActive_${user._id}`, new Date().toDateString());
+
       console.log("Login successful!", user);
 
-      // Navigate based on user role
+      // Navigate with reset information
       if (user.role === "User") {
-        navigate("/users/dashboard");
+        navigate("/users/dashboard", {
+          state: {
+            tasksReset,
+            resetStats,
+            showResetNotification: tasksReset,
+          },
+        });
       } else if (user.role === "Admin") {
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", {
+          state: {
+            tasksReset,
+            resetStats,
+            showResetNotification: tasksReset,
+          },
+        });
       } else if (user.role === "Super") {
-        navigate("/super/dashboard");
+        navigate("/super/dashboard", {
+          state: {
+            tasksReset,
+            resetStats,
+            showResetNotification: tasksReset,
+          },
+        });
       } else {
         navigate("/");
       }
     } catch (error) {
       console.error("Login failed:", error);
 
-      // Handle different error types
       if (error.response?.status === 401) {
         setErrors({
           submit:

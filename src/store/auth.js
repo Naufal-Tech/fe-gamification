@@ -10,14 +10,35 @@ export const useAuthStore = create(
       accessToken: null,
       refreshToken: null,
       error: null,
-      isLoading: false, // Add loading state
+      isLoading: false,
 
-      setAuth: (user, accessToken, refreshToken = null) => {
+      // ✅ NEW: Task reset tracking
+      lastTaskReset: null,
+      tasksResetToday: false,
+
+      setAuth: (
+        user,
+        accessToken,
+        refreshToken = null,
+        tasksResetData = null
+      ) => {
         if (accessToken) {
           localStorage.setItem("accessToken", accessToken);
         }
         if (refreshToken) {
           localStorage.setItem("refreshToken", refreshToken);
+        }
+
+        // ✅ Handle task reset tracking
+        const today = new Date().toDateString();
+        const lastReset = localStorage.getItem(`lastTaskReset_${user._id}`);
+
+        let tasksResetToday = false;
+        if (tasksResetData?.tasksReset) {
+          tasksResetToday = true;
+          localStorage.setItem(`lastTaskReset_${user._id}`, today);
+        } else if (lastReset === today) {
+          tasksResetToday = true;
         }
 
         set({
@@ -27,6 +48,8 @@ export const useAuthStore = create(
           refreshToken,
           error: null,
           isLoading: false,
+          lastTaskReset: tasksResetData?.resetStats || null,
+          tasksResetToday,
         });
       },
 
@@ -37,7 +60,13 @@ export const useAuthStore = create(
       clearAuth: () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        localStorage.removeItem("authToken");
+
+        // Clear task reset tracking
+        const user = get().user;
+        if (user) {
+          localStorage.removeItem(`lastTaskReset_${user._id}`);
+          localStorage.removeItem(`lastActive_${user._id}`);
+        }
 
         set({
           user: null,
@@ -46,10 +75,38 @@ export const useAuthStore = create(
           refreshToken: null,
           error: null,
           isLoading: false,
+          lastTaskReset: null,
+          tasksResetToday: false,
         });
       },
 
       setError: (error) => set({ error }),
+
+      // ✅ NEW: Mark tasks as reset for today
+      markTasksReset: (resetStats = null) => {
+        const user = get().user;
+        if (user) {
+          const today = new Date().toDateString();
+          localStorage.setItem(`lastTaskReset_${user._id}`, today);
+        }
+
+        set({
+          tasksResetToday: true,
+          lastTaskReset: resetStats,
+        });
+      },
+
+      // ✅ NEW: Check if tasks need reset
+      checkTasksReset: () => {
+        const user = get().user;
+        if (!user) return false;
+
+        const today = new Date().toDateString();
+        const lastReset = localStorage.getItem(`lastTaskReset_${user._id}`);
+        const lastActive = localStorage.getItem(`lastActive_${user._id}`);
+
+        return lastReset !== today || lastActive !== today;
+      },
 
       isValidAuth: () => {
         const state = get();
@@ -63,6 +120,8 @@ export const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        lastTaskReset: state.lastTaskReset,
+        tasksResetToday: state.tasksResetToday,
       }),
     }
   )

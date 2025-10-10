@@ -65,3 +65,59 @@ body {
   outline: 2px solid #4f46e5;
   outline-offset: 2px;
 }
+
+/* ✅ ADD: DND Kit specific styles for better drag & drop */
+.sortable-item {
+  touch-action: manipulation; /* Better touch handling */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
+}
+
+/* Prevent the passive event listener warning */
+.dnd-kit-dragging * {
+  touch-action: none;
+}
+
+/* Better cursor for drag operations */
+.cursor-grab {
+  cursor: grab;
+  cursor: -webkit-grab;
+}
+
+.cursor-grabbing {
+  cursor: grabbing;
+  cursor: -webkit-grabbing;
+}
+
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+  .sortable-item {
+    min-height: 70px;
+  }
+
+  /* Better touch feedback */
+  .sortable-item:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Ensure proper drag overlay styling */
+.dnd-kit-drag-overlay {
+  z-index: 9999;
+}
+
+/* Better focus styles for drag handles */
+[data-draggable="true"]:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Improve column drop zones */
+.task-column {
+  transition: background-color 0.2s ease;
+}
+
+.task-column.dnd-kit-drop-over {
+  background-color: rgba(139, 92, 246, 0.1);
+  border-color: #8b5cf6;
+}

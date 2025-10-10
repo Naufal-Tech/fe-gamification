@@ -20,6 +20,28 @@ import {
 } from "react-icons/fa";
 import api from "../../utils/api";
 
+// Move getActionIcon function outside so it's accessible to all components
+const getActionIcon = (action) => {
+  const iconMap = {
+    // XP-related actions
+    task_completed: "📝",
+    daily_task_completed: "✅",
+    milestone_achieved: "🎯",
+    badge_unlocked: "🏆",
+    daily_login: "🔓",
+    manual_adjustment: "✏️",
+    penalty_applied: "⚠️",
+
+    // User actions
+    user_registered: "👤",
+    user_updated: "✏️",
+
+    // System actions
+    system_action: "⚙️",
+  };
+  return iconMap[action] || "📊";
+};
+
 const SuperActivityLogManagement = () => {
   const [filters, setFilters] = useState({
     search: "",
@@ -58,7 +80,7 @@ const SuperActivityLogManagement = () => {
         params.delete("actionType"); // Clear actionType for XP tab to show all XP-related activities
       }
 
-      const response = await api.get(`/v1/dashboard/logs?${params}`, {
+      const response = await api.get(`/v1/activity-logs/logs?${params}`, {
         withCredentials: true,
       });
       return response.data;
@@ -74,7 +96,7 @@ const SuperActivityLogManagement = () => {
       if (filters.startDate) params.append("startDate", filters.startDate);
       if (filters.endDate) params.append("endDate", filters.endDate);
 
-      const response = await api.get(`/v1/dashboard/stats?${params}`, {
+      const response = await api.get(`/v1/activity-logs/stats?${params}`, {
         withCredentials: true,
       });
       return response.data;
@@ -129,27 +151,6 @@ const SuperActivityLogManagement = () => {
     if (hours > 0) return `${hours}h ago`;
     if (minutes > 0) return `${minutes}m ago`;
     return "Just now";
-  };
-
-  const getActionIcon = (action) => {
-    const iconMap = {
-      // XP-related actions
-      task_completed: "📝",
-      daily_task_completed: "✅",
-      milestone_achieved: "🎯",
-      badge_unlocked: "🏆",
-      daily_login: "🔓",
-      manual_adjustment: "✏️",
-      penalty_applied: "⚠️",
-
-      // User actions
-      user_registered: "👤",
-      user_updated: "✏️",
-
-      // System actions
-      system_action: "⚙️",
-    };
-    return iconMap[action] || "📊";
   };
 
   const getActionColor = (action) => {

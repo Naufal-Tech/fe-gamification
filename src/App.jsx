@@ -30,12 +30,16 @@ import {
   ResetPassword,
   SignIn,
   SignUp,
+  SuperActivityLogManagement,
   SuperAdminManagement,
+  SuperBadgeManagement,
   SuperDailyTaskManagement,
   SuperDashboardHome,
   SuperDashboardOutlet,
+  SuperMilestoneManagement,
   SuperPlayersManagement,
   SuperProfile,
+  SuperXPTransactionManagement,
   UserDashboardHome,
   UserDashboardOutlet,
   UserProfile,
@@ -247,6 +251,38 @@ const router = createBrowserRouter([
             element: (
               <ProtectedRoute allowedRoles={["Super"]}>
                 <SuperDailyTaskManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "milestones",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperMilestoneManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "badges",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperBadgeManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "xp-management",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperXPTransactionManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "activity-logs",
+            element: (
+              <ProtectedRoute allowedRoles={["Super"]}>
+                <SuperActivityLogManagement />
               </ProtectedRoute>
             ),
           },

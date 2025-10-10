@@ -1,4 +1,4 @@
-// components/UpdateTaskModal.jsx
+// components/UpdateTaskModal.jsx - FIXED VERSION
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../../store/auth";
@@ -18,16 +18,42 @@ const UpdateTaskModal = ({ isOpen, onClose, task }) => {
     isActive: true,
   });
 
+  // ✅ ADD: Date formatting functions
+  const formatDateForBackend = (dateString) => {
+    if (!dateString) return "";
+
+    // Convert from YYYY-MM-DD to DD/MM/YYYY
+    const [year, month, day] = dateString.split("-");
+    return `${day}/${month}/${year}`;
+  };
+
+  // ✅ ADD: Function to convert backend date to input format
+  const formatDateForInput = (backendDate) => {
+    if (!backendDate) return "";
+
+    // Backend might store in DD/MM/YYYY format, convert to YYYY-MM-DD for input
+    if (backendDate.includes("/")) {
+      const [day, month, year] = backendDate.split("/");
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    // If it's already in YYYY-MM-DD format, return as is
+    return backendDate;
+  };
+
   useEffect(() => {
     if (task) {
-      // Format deadline for date input
       let deadlineDate = "";
       let deadlineTime = "";
 
       if (task.deadlineTimestamp) {
+        // ✅ FIXED: Use timestamp to create date
         const deadline = new Date(task.deadlineTimestamp);
         deadlineDate = deadline.toISOString().split("T")[0];
         deadlineTime = deadline.toTimeString().slice(0, 5);
+      } else if (task.deadlineDate) {
+        // ✅ FIXED: Handle existing deadlineDate from backend
+        deadlineDate = formatDateForInput(task.deadlineDate);
       }
 
       setFormData({
@@ -61,20 +87,31 @@ const UpdateTaskModal = ({ isOpen, onClose, task }) => {
       queryClient.invalidateQueries(["dailyTasks"]);
       onClose();
     },
+    onError: (error) => {
+      console.error("Update task error:", error);
+    },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
 
-    const submitData = { ...formData };
+    // ✅ FIXED: Format dates for backend
+    const submitData = {
+      title: formData.title,
+      description: formData.description,
+      xpReward: parseInt(formData.xpReward),
+      category: formData.category,
+      autoGenerate: formData.autoGenerate,
+      isActive: formData.isActive,
+      // ✅ FIXED: Format deadline date for backend
+      ...(formData.deadlineDate && {
+        deadlineDate: formatDateForBackend(formData.deadlineDate),
+      }),
+      ...(formData.deadlineTime && { deadlineTime: formData.deadlineTime }),
+    };
 
-    // Handle deadline fields
-    if (!submitData.deadlineDate) {
-      submitData.deadlineDate = "";
-      submitData.deadlineTime = "";
-    }
-
+    console.log("Updating task with data:", submitData); // For debugging
     updateTaskMutation.mutate(submitData);
   };
 
@@ -85,6 +122,9 @@ const UpdateTaskModal = ({ isOpen, onClose, task }) => {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+  // Get today's date for min attribute
+  const today = new Date().toISOString().split("T")[0];
 
   if (!isOpen || !task) return null;
 
@@ -179,6 +219,9 @@ const UpdateTaskModal = ({ isOpen, onClose, task }) => {
                   onChange={handleChange}
                   className="w-full"
                 />
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  {formData.xpReward} XP
+                </div>
               </div>
             </div>
 
@@ -192,7 +235,7 @@ const UpdateTaskModal = ({ isOpen, onClose, task }) => {
                   name="deadlineDate"
                   value={formData.deadlineDate}
                   onChange={handleChange}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={today}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -236,6 +279,25 @@ const UpdateTaskModal = ({ isOpen, onClose, task }) => {
                 <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                   Active
                 </label>
+              </div>
+            </div>
+
+            {/* ✅ ADD: Task Status Information */}
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Task Status
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="text-gray-600 dark:text-gray-400">
+                  <div>
+                    Completed Today: {task.completedToday ? "✅ Yes" : "❌ No"}
+                  </div>
+                  <div>Current Streak: {task.currentStreak || 0} days</div>
+                </div>
+                <div className="text-gray-600 dark:text-gray-400">
+                  <div>Total Completions: {task.totalCompletions || 0}</div>
+                  <div>Longest Streak: {task.longestStreak || 0} days</div>
+                </div>
               </div>
             </div>
 
